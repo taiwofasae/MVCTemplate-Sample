@@ -18,36 +18,47 @@ namespace HelloWorld
         {
             ConfigureAuth(app);
 
-            JwtSecurityTokenHandler.InboundClaimTypeMap = new Dictionary<string, string>();
-
-            app.UseOpenIdConnectAuthentication(new Microsoft.Owin.Security.OpenIdConnect.OpenIdConnectAuthenticationOptions
+            app.Map("/admin", adminApp =>
             {
-                AuthenticationType = "oidc",
-                Authority = "https://bootstrapmvc-idsvr.azurewebsites.net/",
-                ClientId = "sample",
-                RedirectUri = "http://localhost:38319/admin",//http://sample.test.vggdev.com/
-                ResponseType = "id_token",
-                UseTokenLifetime = false,
-                Scope = "openid profile roles",
-                SignInAsAuthenticationType = DefaultAuthenticationTypes.ApplicationCookie,
-            });
+                JwtSecurityTokenHandler.InboundClaimTypeMap = new Dictionary<string, string>();
 
-            var factory = new IdentityManagerServiceFactory();
-            factory.ConfigureSimpleIdentityManagerService();
-            var options = new IdentityManagerOptions
-            {
-                Factory = factory,
-                SecurityConfiguration = new HostSecurityConfiguration
+                var admin_Cookie = "random";
+                adminApp.UseCookieAuthentication(new CookieAuthenticationOptions
                 {
-                    RequireSsl = false,
-                    HostAuthenticationType = DefaultAuthenticationTypes.ApplicationCookie,
-                    AdminRoleName = "sample",// == clientid == user's role claim
-                    NameClaimType = "name",
-                    RoleClaimType = "role",
-                }
+                    AuthenticationType = admin_Cookie,
+                    CookiePath = "/admin"
+                });
 
-            };
-            app.Map("/admin", _ => { _.UseIdentityManager(options); });
+                adminApp.UseOpenIdConnectAuthentication(new Microsoft.Owin.Security.OpenIdConnect.OpenIdConnectAuthenticationOptions
+                {
+                    AuthenticationType = "oidc",
+                    Authority = "https://bootstrapmvc-idsvr.azurewebsites.net/",
+                    ClientId = "sample",
+                    RedirectUri = "http://localhost:38319/admin", //http://sample.test.vggdev.com/
+                    ResponseType = "id_token",
+                    UseTokenLifetime = false,
+                    Scope = "openid profile roles",
+                    SignInAsAuthenticationType = admin_Cookie
+                });
+
+                var factory = new IdentityManagerServiceFactory();
+                factory.ConfigureSimpleIdentityManagerService();
+                var options = new IdentityManagerOptions
+                {
+                    Factory = factory,
+                    SecurityConfiguration = new HostSecurityConfiguration
+                    {
+                        RequireSsl = false,
+                        HostAuthenticationType = admin_Cookie,
+                        AdminRoleName = "sample",// == clientid == user's role claim
+                        NameClaimType = "name",
+                        RoleClaimType = "role",
+                    }
+
+                };
+
+                adminApp.UseIdentityManager(options);
+            });
         }
     }
 }
