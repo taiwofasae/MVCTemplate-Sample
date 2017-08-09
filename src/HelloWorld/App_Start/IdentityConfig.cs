@@ -11,6 +11,7 @@ using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin;
 using Microsoft.Owin.Security;
 using HelloWorld.Models;
+using WebGrease.Css.Extensions;
 
 namespace HelloWorld
 {
@@ -53,6 +54,25 @@ namespace HelloWorld
         public ApplicationUserManager(ApplicationUserStore store)
             : base(store)
         {
+        }
+
+        public override async Task<IList<Claim>> GetClaimsAsync(string userId)
+        {
+            var claims = await base.GetClaimsAsync(userId);
+            (await base.GetRolesAsync(userId)).ForEach(d => claims.Add(new Claim("role", d)));
+            return claims;
+        }
+
+        public override Task<IdentityResult> RemoveClaimAsync(string userId, Claim claim)
+        {
+            if (claim.Type == "role") return base.RemoveFromRoleAsync(userId, claim.Value);
+            return base.RemoveClaimAsync(userId, claim);
+        }
+
+        public override Task<IdentityResult> AddClaimAsync(string userId, Claim claim)
+        {
+            if (claim.Type == "role") return base.AddToRoleAsync(userId, claim.Value);
+            return base.AddClaimAsync(userId, claim);
         }
 
         public static ApplicationUserManager Create(IdentityFactoryOptions<ApplicationUserManager> options, IOwinContext context) 
